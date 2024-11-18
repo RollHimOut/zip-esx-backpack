@@ -1,0 +1,37 @@
+local currentBackpack = nil
+
+RegisterNetEvent('backpack:useItem', function()
+    local playerPed = PlayerPedId()
+
+    if currentBackpack then
+        -- Backpack already equipped
+        TriggerEvent('ox_inventory:openInventory', 'stash', currentBackpack)
+    else
+        -- Equip a new backpack
+        TriggerServerEvent('backpack:equip')
+    end
+end)
+
+RegisterNetEvent('backpack:equipBackpack', function(backpackId)
+    currentBackpack = backpackId
+    ESX.ShowNotification("Backpack equipped. Use it to open the inventory.")
+end)
+
+RegisterNetEvent('backpack:unequipBackpack', function()
+    currentBackpack = nil
+    ESX.ShowNotification("Backpack unequipped.")
+end)
+
+-- Prevent players from equipping multiple backpacks
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(5000) -- Check every 5 seconds
+        if currentBackpack then
+            local hasBackpack = exports.ox_inventory:Search('count', Config.BackpackItem)
+            if hasBackpack > 1 then
+                ESX.ShowNotification("You can only carry one backpack!")
+                TriggerServerEvent('backpack:removeExtra')
+            end
+        end
+    end
+end)
