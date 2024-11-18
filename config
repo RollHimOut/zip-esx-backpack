@@ -1,0 +1,8 @@
+2. config.lua
+
+Config = {}
+
+-- Item configuration
+Config.BackpackItem = "backpack" -- Name of the backpack item
+Config.MaxWeight = 50.0 -- Maximum weight capacity of the backpack (in kg)
+Config.MaxSlots = 20 -- Maximum slots available in the backpack
