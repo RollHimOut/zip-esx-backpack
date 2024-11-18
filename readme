@@ -1,5 +1,5 @@
 Overview of the Script
-
+Still missing model for backpack to load on player & a few other thinfs i will finish. 
 	1.	Features:
 	•	Backpack as a usable item.
 	•	Opens a secondary inventory (linked to the backpack ID).
