@@ -27,121 +27,10 @@ CREATE TABLE backpack_inventory (
     metadata JSON DEFAULT NULL
 );
 
-3. client.lua
 
-local currentBackpack = nil
+-- Adding the Backpack Item
 
-RegisterNetEvent('backpack:useItem', function()
-    local playerPed = PlayerPedId()
-
-    if currentBackpack then
-        -- Backpack already equipped
-        TriggerEvent('ox_inventory:openInventory', 'stash', currentBackpack)
-    else
-        -- Equip a new backpack
-        TriggerServerEvent('backpack:equip')
-    end
-end)
-
-RegisterNetEvent('backpack:equipBackpack', function(backpackId)
-    currentBackpack = backpackId
-    ESX.ShowNotification("Backpack equipped. Use it to open the inventory.")
-end)
-
-RegisterNetEvent('backpack:unequipBackpack', function()
-    currentBackpack = nil
-    ESX.ShowNotification("Backpack unequipped.")
-end)
-
--- Prevent players from equipping multiple backpacks
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(5000) -- Check every 5 seconds
-        if currentBackpack then
-            local hasBackpack = exports.ox_inventory:Search('count', Config.BackpackItem)
-            if hasBackpack > 1 then
-                ESX.ShowNotification("You can only carry one backpack!")
-                TriggerServerEvent('backpack:removeExtra')
-            end
-        end
-    end
-end)
-
-4. server.lua
-
-local ox_inventory = exports.ox_inventory
-
-RegisterServerEvent('backpack:equip', function()
-    local xPlayer = ESX.GetPlayerFromId(source)
-
-    -- Check if player already has a backpack equipped
-    local equippedBackpack = xPlayer.getInventoryItem(Config.BackpackItem)
-    if not equippedBackpack or equippedBackpack.count < 1 then
-        TriggerClientEvent('esx:showNotification', source, "You don't have a backpack to equip.")
-        return
-    end
-
-    -- Generate a unique backpack ID
-    local backpackId = 'backpack_' .. xPlayer.identifier .. '_' .. math.random(10000, 99999)
-
-    -- Assign stash for the backpack
-    ox_inventory:RegisterStash(backpackId, "Backpack", Config.MaxSlots, Config.MaxWeight)
-
-    -- Equip the backpack
-    TriggerClientEvent('backpack:equipBackpack', source, backpackId)
-end)
-
-RegisterServerEvent('backpack:removeExtra', function()
-    local xPlayer = ESX.GetPlayerFromId(source)
-    local extraBackpacks = xPlayer.getInventoryItem(Config.BackpackItem).count - 1
-
-    if extraBackpacks > 0 then
-        xPlayer.removeInventoryItem(Config.BackpackItem, extraBackpacks)
-        TriggerClientEvent('esx:showNotification', source, "Extra backpacks have been removed.")
-    end
-end)
-
-AddEventHandler('ox_inventory:saveInventory', function(stashName, items)
-    if string.sub(stashName, 1, 8) == "backpack" then
-        -- Save items to the database
-        local backpackId = stashName
-        MySQL.Async.execute('DELETE FROM backpack_inventory WHERE backpack_id = ?', {backpackId})
-
-        for _, item in pairs(items) do
-            MySQL.Async.execute('INSERT INTO backpack_inventory (backpack_id, item_name, item_count, metadata) VALUES (?, ?, ?, ?)', {
-                backpackId,
-                item.name,
-                item.count,
-                json.encode(item.metadata or {})
-            })
-        end
-    end
-end)
-
-AddEventHandler('ox_inventory:loadInventory', function(stashName, cb)
-    if string.sub(stashName, 1, 8) == "backpack" then
-        -- Load items from the database
-        local items = {}
-        local backpackId = stashName
-
-        MySQL.Async.fetchAll('SELECT * FROM backpack_inventory WHERE backpack_id = ?', {backpackId}, function(result)
-            for _, row in ipairs(result) do
-                table.insert(items, {
-                    name = row.item_name,
-                    count = row.item_count,
-                    metadata = json.decode(row.metadata or '{}')
-                })
-            end
-            cb(items)
-        end)
-    else
-        cb({})
-    end
-end)
-
-5. Adding the Backpack Item
-
-In your ox_inventory item configuration (likely shared/items.lua), add the backpack item:
+-- In your ox_inventory item config add the backpack item:
 
 ['backpack'] = {
     label = 'Backpack',
@@ -154,9 +43,8 @@ In your ox_inventory item configuration (likely shared/items.lua), add the backp
     },
 }
 
-6. Selling the Backpack
+Selling the Backpack from a Shop
 
-Since you’ve mentioned the shop is already configured, ensure the backpack is added to the shop’s item list in your ox_inventory shop configuration:
 
 ['backpack'] = {
     price = 250, -- Example price
@@ -176,5 +64,3 @@ How It Works
 	•	When opening the backpack, the script fetches stored items from the database.
 	5.	Restrict Extra Backpacks:
 	•	Prevents players from equipping more than one backpack.
-
-Would you like to expand on this, such as adding custom backpack skins or other features?
